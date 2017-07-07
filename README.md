@@ -18,7 +18,7 @@
 ### docs目录
 该目录下有关于SDK的文档
 
-[API文档](./docs/API.md)
+[API文档](./docs/API.pdf)
 
 ## 编译和运行demo
 

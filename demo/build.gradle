@@ -1,6 +1,17 @@
 apply plugin: 'java'
 apply plugin: 'idea'
 
+buildscript {
+    repositories {
+        maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+    }
+}
+
+allprojects {
+    repositories {
+        maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+    }
+}
 
 sourceSets {
     main {
@@ -13,13 +24,8 @@ sourceSets {
     }
 }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-    jcenter()
-}
 
 dependencies {
     compile 'junit:junit:4.11'
-    compile files('libs/dsdb-sdk-java-1.1.2.jar')
+    compile files('libs/dsdb-sdk-java-2.1.4.jar')
 }
