@@ -3,45 +3,35 @@ package com.dasudian.dsdb.demo;
 import com.dasudian.dsdb.client.DsdbClient;
 import com.dasudian.dsdb.client.DsdbException;
 import com.dasudian.dsdb.client.DsdbSearch;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by bob on 17-4-24.
  */
 
 public class DsdbDemo {
-    private static String index = "people";
-    private static String bucketType = "people";
-    private static String bucket = "people_20170525";
-    private static String key = "key";
-    private static String value = "{\"name\":\"Jack_bb\",\"age\":24,\"leader\":false}";
+
+    private static String index = "TestingDeviceConfig";
+    private static String bucketType = "TestingDeviceConfig";
+    private static String bucket = "TestingDeviceConfig_0707";
+    private static String key = "key01";
+    private static String value = "{\"TestDeviceID\":01,\"TestDeviceName\":\"car01\",\"TestDeviceIPAddress\":\"Address\",\"TestDeviceIPPort\":01,\"Baudrate\":01,\"StopBit\":01,\"DataBit\":01,\"ParityCheckBit\":01}";
 
     public static void main(String[] args) throws Exception {
+        String host = "yourServerUrl";  //服务器地址
+        int port = 8087;   //设置您的端口号
+        int min = 10;      //设置连接池最小值
+        int max = 50;      //设置连接池最大值
+        DsdbClient dsdb = new DsdbClient.Builder(host, port).withConnectionPooling(min, max).build();//创建客户端
 
-        /**
-         *  创建客户端
-         *  @param remoteAddress DSDB地址
-         *  @param port          DSDB端口
-         */
-        DsdbClient dsdb = new DsdbClient.Builder("192.168.1.206", 8087).build();
-
-        /**
-         * 客户端建立连接
-         */
-        dsdb.connect();
+        dsdb.connect();  //客户端建立连接
 
         /**
          * 将数据存储到指定的bucket和bucketType中
@@ -50,7 +40,7 @@ public class DsdbDemo {
                              数据存放的bucket type。可以为null，如果传null，则将数据保存到默认的bucketType中。
          * @param bucket     这是bucketType子一层命名空间
                              比如：bucketType代表一个脊椎动物类，那么bucket就可以是鱼类,爬行类,鸟类,两栖类,哺乳类
-                                  bucketType代表一个汽车,那么bucket就可以是跑车，拖拉机等。
+                             bucketType代表一个汽车,那么bucket就可以是跑车，拖拉机等。
                              数据存放的bucket。
          * @param key        数据的key，必须是唯一的标识符。
          * @param value      要存储的数据内容。
@@ -68,7 +58,6 @@ public class DsdbDemo {
          * @throws DsdbException 失败时抛出异常
          */
         String res = dsdb.get(bucketType, bucket, key);
-
         System.out.println(res);
 
         /**
@@ -79,35 +68,39 @@ public class DsdbDemo {
          * @param key        数据对应的key
          * @throws DsdbException 失败时抛出异常
          */
-//        dsdb.delete(bucketType, bucket, key);
+       // dsdb.delete(bucketType, bucket, key);
 
-        /**
-         * 创建查询类
-         */
-        DsdbSearch ds = new DsdbSearch();
 
-        /**
-         * 建立索引
-         * @param index
-         */
-        ds.setIndex(index);
+        DsdbSearch dsdbSearch = new DsdbSearch();       //创建查询类
 
-        /**
-         * 建立查询条件
-         * @param condtion
-         */
-        ds.setCondtion("*:*");
+        dsdbSearch.setIndex("TestingDeviceConfig");     //建立索引
+        dsdbSearch.setCondtion("*:*");                  //建立查询条件
+        dsdbSearch.setSortFiled("TestDeviceID desc");   //结果排序
+        dsdbSearch.setStart(0);                         //查出的数据，从第几条开始显示
+        dsdbSearch.setRows(50);                         //每页输出的结果数量
 
-        /**
-         * 得到一个SearchResult对象
-         */
-        DsdbClient.SearchResult sr = dsdb.search(ds);
+        List<String> returnFields = new ArrayList<String>();
+        returnFields.add("TestDeviceID");               //设置返回的字段
+        returnFields.add("TestDeviceName");
+        dsdbSearch.setReturnFields(returnFields);
 
-        System.out.println(sr.results);
+        dsdbSearch.setFacet("facet=true&facet.field=ParityCheckBit");                 //垂直查询
 
-        /**
-         * 断开连接
-         */
+        List<Map<String, Object>> facet = dsdb.facet(dsdbSearch);
+        System.out.println("facet:" + facet);
+
+        dsdbSearch.setStats("stats=true&stats.field=Baudrate");                       //统计查询
+
+        List<Map<String, Object>> stats = dsdb.stats(dsdbSearch);
+        System.out.println("stats:" + stats);
+
+    //    dsdbSearch.setGroup("group=true&group.field=ParityCheckBit&group.limit=100"); //分组查询
+
+        DsdbClient.SearchResult searchResult = dsdb.search(dsdbSearch);
+        for (Map<String, List<String>> r : searchResult.results) {
+            System.out.println("search result:" + r);
+        }
+
         dsdb.disconnect();
     }
 
