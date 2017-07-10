@@ -22,7 +22,7 @@ public class DsdbDemo {
     private static String bucketType = "TestingDeviceConfig";
     private static String bucket = "TestingDeviceConfig_0707";
     private static String key = "key01";
-    private static String value = "{\"TestDeviceID\":01,\"TestDeviceName\":\"car01\",\"TestDeviceIPAddress\":\"Address\",\"TestDeviceIPPort\":01,\"Baudrate\":01,\"StopBit\":01,\"DataBit\":01,\"ParityCheckBit\":01}";
+    private static String value = "{\"TestDeviceID\":1,\"TestDeviceName\":\"test_GO\",\"TestDeviceIPAddress\":\"test05\",\"TestDeviceIPPort\":1,\"Baudrate\":1,\"StopBit\":1,\"DataBit\":1,\"ParityCheckBit\":1}";
 
     public static void main(String[] args) throws Exception {
         String host = "yourServerUrl";  //服务器地址
