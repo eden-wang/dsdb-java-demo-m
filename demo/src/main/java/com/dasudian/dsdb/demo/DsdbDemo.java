@@ -1,107 +1,81 @@
 package com.dasudian.dsdb.demo;
 
-import com.dasudian.dsdb.client.DsdbClient;
-import com.dasudian.dsdb.client.DsdbException;
-import com.dasudian.dsdb.client.DsdbSearch;
+import com.dasudian.dsdb.client.*;
 
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
-/**
- * Created by bob on 17-4-24.
- */
+import static com.dasudian.dsdb.client.DsdbFilter.*;
+import static com.dasudian.dsdb.client.DsdbUpdates.*;
 
 public class DsdbDemo {
-
-    private static String index = "TestingDeviceConfig";
-    private static String bucketType = "TestingDeviceConfig";
-    private static String bucket = "TestingDeviceConfig_0707";
-    private static String key = "key01";
-    private static String value = "{\"TestDeviceID\":1,\"TestDeviceName\":\"test_GO\",\"TestDeviceIPAddress\":\"test05\",\"TestDeviceIPPort\":1,\"Baudrate\":1,\"StopBit\":1,\"DataBit\":1,\"ParityCheckBit\":1}";
+    final static String USER = "user"; /* 登录数据库的用户*/
+    final static String PASSWD = "passwd"; /* 对应用户的密码 */
+    final static String REMOTE_ADDR = "remote_address"; /* 服务器地址 */
+    final static int PORT = 27017; /* 服务器端口号 */
+    final static String AUTH_DB = "test"; /* 验证用户密码的数据库 */
+    final static String DATA_DB = "test"; /* 存放数据的数据库 */
+    final static String DATA_COLL = "people"; /* 存放数据的集合 */
 
     public static void main(String[] args) throws Exception {
-        String host = "yourServerUrl";  //服务器地址
-        int port = 8087;   //设置您的端口号
-        int min = 10;      //设置连接池最小值
-        int max = 50;      //设置连接池最大值
-        DsdbClient dsdb = new DsdbClient.Builder(host, port).withConnectionPooling(min, max).build();//创建客户端
+        try {
+            /*
+             * 填写用户名, 密码, 服务器地址和端口号, 认证数据库名
+             */
+            DsdbClient client = new DsdbClient.Builder(USER, PASSWD,
+                    REMOTE_ADDR, PORT, AUTH_DB).build();
+            /* 连接服务器 */
+            client.connect();
+            /* 向某个数据库的某个集合中写入数据 */
+            client.put(DATA_DB, DATA_COLL,
+                    new DsdbDocument("createTime", new Date()) /* date类型的数据 */
+                            .append("name", "mike") /* 字符串类型的数据 */
+                            .append("age", 5) /* 整型数据 */
+                            .append("male", true)); /* 布尔型数据 */
+            client.put(DATA_DB, DATA_COLL,
+                    new DsdbDocument("createTime", new Date())
+                    .append("name", "jack")
+                    .append("age", 10)
+                    .append("male", true));
+            client.put(DATA_DB, DATA_COLL,
+                    new DsdbDocument("createTime", new Date())
+                    .append("name", "maria")
+                    .append("age", 2)
+                    .append("male", false));
 
-        dsdb.connect();  //客户端建立连接
+            /* 默认查询所有数据 */
+            DsdbSearchOption searchOption = new DsdbSearchOption();
+            /* 返回所有数据 */
+            searchOption.rows = 0;
 
-        /**
-         * 将数据存储到指定的bucket和bucketType中
-         *
-         * @param bucketType 这是一个命名空间
-                             数据存放的bucket type。可以为null，如果传null，则将数据保存到默认的bucketType中。
-         * @param bucket     这是bucketType子一层命名空间
-                             比如：bucketType代表一个脊椎动物类，那么bucket就可以是鱼类,爬行类,鸟类,两栖类,哺乳类
-                             bucketType代表一个汽车,那么bucket就可以是跑车，拖拉机等。
-                             数据存放的bucket。
-         * @param key        数据的key，必须是唯一的标识符。
-         * @param value      要存储的数据内容。
-         * @throws DsdbException 失败时抛出异常
-         */
-        dsdb.put(bucketType, bucket, key, value);
+            DsdbSearchResult searchResult = client.search(DATA_DB, DATA_COLL, searchOption);
+            /* 打印查询结果 */
+            System.out.println("插入结果:");
+            printSearchResult(searchResult);
 
-        /**
-         * 读取数据
-         *
-         * @param bucketType 数据所在的bucket type。可以为null，如果传null，则从默认的bucket type中读取数据。
-         * @param bucket     数据所在的bucket
-         * @param key        数据对应的key
-         * @return 返回读到的数据。如果该key没有数据，则返回null。
-         * @throws DsdbException 失败时抛出异常
-         */
-        String res = dsdb.get(bucketType, bucket, key);
-        System.out.println(res);
+            /* 更新male为true的age字段为20 */
+            client.updateMany(DATA_DB, DATA_COLL, eq("male", true), set("age", 20));
 
-        /**
-         * 刪除数据
-         *
-         * @param bucketType 数据所在的bucket type。可以为null，如果传null，则从默认的bucket type中删除数据。
-         * @param bucket     数据所在的bucket
-         * @param key        数据对应的key
-         * @throws DsdbException 失败时抛出异常
-         */
-       // dsdb.delete(bucketType, bucket, key);
+            searchResult = client.search(DATA_DB, DATA_COLL, searchOption);
+            /* 打印查询结果 */
+            System.out.println("更新结果:");
+            printSearchResult(searchResult);
 
-
-        DsdbSearch dsdbSearch = new DsdbSearch();       //创建查询类
-
-        dsdbSearch.setIndex("TestingDeviceConfig");     //建立索引
-        dsdbSearch.setCondtion("*:*");                  //建立查询条件
-        dsdbSearch.setSortFiled("TestDeviceID desc");   //结果排序
-        dsdbSearch.setStart(0);                         //查出的数据，从第几条开始显示
-        dsdbSearch.setRows(50);                         //每页输出的结果数量
-
-        List<String> returnFields = new ArrayList<String>();
-        returnFields.add("TestDeviceID");               //设置返回的字段
-        returnFields.add("TestDeviceName");
-        dsdbSearch.setReturnFields(returnFields);
-
-        dsdbSearch.setFacet("facet=true&facet.field=ParityCheckBit");                 //垂直查询
-
-        List<Map<String, Object>> facet = dsdb.facet(dsdbSearch);
-        System.out.println("facet:" + facet);
-
-        dsdbSearch.setStats("stats=true&stats.field=Baudrate");                       //统计查询
-
-        List<Map<String, Object>> stats = dsdb.stats(dsdbSearch);
-        System.out.println("stats:" + stats);
-
-    //    dsdbSearch.setGroup("group=true&group.field=ParityCheckBit&group.limit=100"); //分组查询
-
-        DsdbClient.SearchResult searchResult = dsdb.search(dsdbSearch);
-        for (Map<String, List<String>> r : searchResult.results) {
-            System.out.println("search result:" + r);
+            /* 断开连接 */
+            client.disconnect();
+        } catch (DsdbException e) {
+            System.out.println(e.getMessage());
         }
-
-        dsdb.disconnect();
     }
+    /* 按照Json格式输出查询结果 */
+    public static void printSearchResult(DsdbSearchResult searchResult) {
+        try {
+            if (searchResult != null)
+                while (searchResult.hasNext())
+                    System.out.println(searchResult.next().toJson());
+        } catch (DsdbException e) {
+            System.out.println("print error,error message:  " + e.getMessage());
+        }
+    }
+
 
 }
